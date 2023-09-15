@@ -16,11 +16,15 @@ jobs:
     - name: Checkout the code
       uses: actions/checkout@v3
 
+# ~~~~~~~~~~~~~~~~~~~ Building Container Image ~~~~~~~~~~~~~~~~~~~
+
     - name: Building Docker Images
       run: |
         docker image build -t simple-web-app:${{ github.sha }} . 
         docker image tag simple-web-app:${{ github.sha }} ${{secrets.DOCKER_REPO}}/simple-web-app:${{ github.sha }}
         docker image tag simple-web-app:${{ github.sha }} ${{secrets.DOCKER_REPO}}/simple-web-app:latest  
+
+# ~~~~~~~~~~~~~~~~~~~ Pushing Container Image ~~~~~~~~~~~~~~~~~~~
 
     - name: Pushing Image onto Docker Hub
       run: |
