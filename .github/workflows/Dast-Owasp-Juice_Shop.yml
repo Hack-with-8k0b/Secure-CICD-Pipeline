@@ -1,0 +1,15 @@
+name: Dast-Scan
+on:
+  workflow_dispatch:
+  
+jobs:
+  dast-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Zap Scan
+        uses: zaproxy/action-full-scan@v0.4.0
+        with:
+          token: ${{secrets.GITHUB_TOKEN}}
+          target: 'https://juice-shop.herokuapp.com/'
