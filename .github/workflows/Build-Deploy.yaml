@@ -48,7 +48,7 @@ jobs:
 
       - name: Deploying the Docker
         env: 
-          PRIVATE_KEY: ${{secrets.SSH_KEY}}
+          PRIVATE_KEY: ${{secrets.SSH_PRIVATE_KEY}}
           HOSTNAME: ${{secrets.SSH_HOST}}
           USER_NAME: ${{secrets.SSH_USER}}
 
