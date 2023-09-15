@@ -1,34 +1,63 @@
-name: Simple-Web-Deployment
+name: simple-web-app
 
 on:
   workflow_dispatch:
 
 jobs:
+  Build:
 
-  Build-Deploy:
-  
     runs-on: ubuntu-latest
     
     steps:
 
 # ~~~~~~~~~~~~~~~~~~~ Dumping Code ~~~~~~~~~~~~~~~~~~~
-    
-    - name: Checkout the code
-      uses: actions/checkout@v3
+
+      - name: Check out Code
+        uses: actions/checkout@v3
+
+      - name: echoing the file name
+        run: echo $GITHUB_WORKFLOW:$GITHUB_RUN_ID
 
 # ~~~~~~~~~~~~~~~~~~~ Building Container Image ~~~~~~~~~~~~~~~~~~~
-
-    - name: Building Docker Images
-      run: |
-        docker image build -t simple-web-app:${{ github.sha }} . 
-        docker image tag simple-web-app:${{ github.sha }} ${{secrets.DOCKER_REPO}}/simple-web-app:${{ github.sha }}
-        docker image tag simple-web-app:${{ github.sha }} ${{secrets.DOCKER_REPO}}/simple-web-app:latest  
+        
+      - name: Building Docker Images
+        run: |
+          docker image build -t $GITHUB_WORKFLOW:$GITHUB_RUN_ID . 
+          docker image tag $GITHUB_WORKFLOW:$GITHUB_RUN_ID nbharathkumara/$GITHUB_WORKFLOW:$GITHUB_RUN_ID
+          docker image tag $GITHUB_WORKFLOW:$GITHUB_RUN_ID nbharathkumara/$GITHUB_WORKFLOW:latest
 
 # ~~~~~~~~~~~~~~~~~~~ Pushing Container Image ~~~~~~~~~~~~~~~~~~~
 
-    - name: Pushing Image onto Docker Hub
-      run: |
-        docker login -u ${{secrets.DOCKER_USER}} -p ${{secrets.DOCKER_PASSWORD}}
-        docker images
-        docker image push ${{secrets.DOCKER_REPO}}/simple-web-app:${{ github.sha }}
-        docker image push ${{secrets.DOCKER_REPO}}/simple-web-app:latest
+      - name: Pushing Image onto Docker Hub
+        run: |
+          docker login -u ${{secrets.DOCKER_USER}} -p ${{secrets.DOCKER_PASSWORD}}
+          docker images
+          docker image push nbharathkumara/$GITHUB_WORKFLOW:$GITHUB_RUN_ID
+          docker image push nbharathkumara/$GITHUB_WORKFLOW:latest
+          docker image rmi $GITHUB_WORKFLOW:$GITHUB_RUN_ID nbharathkumara/$GITHUB_WORKFLOW:$GITHUB_RUN_ID nbharathkumara/$GITHUB_WORKFLOW:latest
+
+  Deploy:      
+  
+    needs: [Build]
+    
+    runs-on: ubuntu-latest
+    
+    steps:
+
+# ~~~~~~~~~~~~~~~~~~~ Configuring Deploying Environment ~~~~~~~~~~~~~~~~~~~
+
+      - name: Deploying the Docker
+        env: 
+          PRIVATE_KEY: ${{secrets.SSH_KEY}}
+          HOSTNAME: ${{secrets.SSH_HOST}}
+          USER_NAME: ${{secrets.SSH_USER}}
+
+# ~~~~~~~~~~~~~~~~~~~ Deploying Container Image ~~~~~~~~~~~~~~~~~~~
+          
+        run: |
+          echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
+          ssh -o StrictHostKeyChecking=no -i private_key ${USER_NAME}@${HOSTNAME} '
+            docker container rm -f bkob-server
+            docker system prune -a -f
+            docker run -p 80:80 -d --name bkob-server nbharathkumara/simple_pipeline:latest
+            '
